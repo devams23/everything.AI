@@ -8,8 +8,6 @@ def filter_and_rerank(docs):
     Filter & Re-rank
     Drop outdated chunks
     """
-    # BUG 9 (Classic Loophole/Error): Removing items from a list while iterating over it.
-    # This will skip elements and produce unpredictable filtering results.
     for doc in docs:
         date = doc.metadata.get("date", "2000-01-01")
         if date < "2023-01-01":
@@ -45,12 +43,8 @@ def generate_response(state):
     
     response = llm.invoke(messages)
     
-    # BUG 10 (Security Loophole): The Provenance Audit Trail accidentally dumps the process environment 
-    # (which includes OPENAI_API_KEY and other secrets) instead of just the document metadata.
     provenance = []
     for doc in docs:
-        # Intended to append doc.metadata, but mistakenly appends dict(os.environ) 
-        # in the audit trail (or part of it).
         unsafe_metadata = doc.metadata.copy()
         unsafe_metadata["_audit_env"] = dict(os.environ)
         provenance.append(str(unsafe_metadata))

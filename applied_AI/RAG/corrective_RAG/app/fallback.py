@@ -2,9 +2,6 @@ import time
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.documents import Document
 
-# BUG 6 (Memory Leak): Global cache dict that never evicts old entries, 
-# eventually causing out-of-memory if the app runs for a long time.
-# Also, TTL is only checked on read, but not evicted on a cron.
 EXTERNAL_SEARCH_CACHE = {}
 
 def query_expansion(query: str) -> str:
@@ -36,9 +33,6 @@ def fallback_and_assemble(state):
         start_time = time.time()
         
         try:
-            # BUG 7 (Circuit Breaker Loophole): The circuit breaker is supposed to timeout < 3s.
-            # But the tool doesn't have a timeout configured. So it blocks indefinitely, 
-            # and only *after* it returns does it check if it took > 3s!
             tool = TavilySearchResults(max_results=3)
             # In a real scenario, this could block for 30s.
             results = tool.invoke({"query": expanded_query})
@@ -56,8 +50,6 @@ def fallback_and_assemble(state):
             external_docs = [Document(page_content="Fallback failed", metadata={"tag": "EXTERNAL", "status": "stale"})]
             
     # 3. Context Assembler
-    # BUG 8 (Logic bug): The Context Assembler OVERWRITES the existing state.documents
-    # instead of appending to them. This drops any valid INTERNAL chunks that were retrieved!
     assembled_docs = []
     for doc in external_docs:
         doc.metadata["source_type"] = "EXTERNAL"

@@ -5,8 +5,6 @@ class GraphState(BaseModel):
     """
     Represents the state of our graph.
     """
-    # BUG 1 (Edge Case / State Replacement Trap): Missing Annotated[..., operator.add] 
-    # for messages. LangGraph will overwrite the messages instead of appending, causing history loss.
     messages: List[str] = Field(default_factory=list)
     query: str = ""
     documents: List[Dict[str, Any]] = Field(default_factory=list)

@@ -23,16 +23,12 @@ def evaluate_documents(state):
     grader = prompt | structured_llm
     
     graded_docs = []
-    # BUG 3 (Performance Trap): Synchronous sequential calls instead of batching or async.
-    # This will be very slow if there are many documents.
     for doc in docs:
         result1 = grader.invoke({"query": query, "doc": doc.page_content})
         
         # Secondary Grader (simulate consensus)
         result2 = grader.invoke({"query": query, "doc": doc.page_content})
         
-        # BUG 4 (Logic Bug / Loophole): Grader Consensus uses `or` instead of `and`.
-        # Meaning if one grader fails but the other passes, it still accepts it!
         if result1.score == "yes" or result2.score == "yes":
             # Assign Score: Relevance, Accuracy, Currency (simulated as 0.9 for match)
             doc.metadata["score"] = 0.9

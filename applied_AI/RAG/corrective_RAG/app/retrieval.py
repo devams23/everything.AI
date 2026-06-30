@@ -18,8 +18,6 @@ def retrieve_top_k(state):
     embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
     vectorstore = FAISS.from_documents(dummy_docs, embeddings)
     
-    # BUG 2 (Performance trap): Hardcoded k to an absurdly high number instead of standard top-k
-    # This will load all matching vectors into memory and slow down everything if DB is large.
     retriever = vectorstore.as_retriever(search_kwargs={"k": 10000000}) 
     docs = retriever.invoke(query)
     

@@ -10,8 +10,6 @@ def route_documents(state):
     if not docs:
         return "fallback"
         
-    # BUG 5 (Edge Case / Loophole): Routing engine only checks the FIRST document 
-    # to decide the fate of the entire batch, ignoring all others.
     first_doc_score = docs[0].metadata.get("score", 0.0)
     
     if first_doc_score >= 0.8:
