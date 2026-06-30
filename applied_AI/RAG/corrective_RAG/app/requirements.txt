@@ -1,0 +1,6 @@
+langchain
+langgraph
+langchain-openai
+faiss-cpu
+tavily-python
+pydantic
