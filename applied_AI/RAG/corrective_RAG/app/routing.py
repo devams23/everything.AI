@@ -1,23 +1,13 @@
 def route_documents(state):
     """
-    Orchestration & Decision Routing
-    Path A: Correct
-    Path B: Ambiguous
-    Path C: Incorrect
+    Routes based on the Confidence judgment from the evaluation step.
+    Returns the name of the next node.
     """
-    docs = state.documents
+    confidence = state.get("confidence", "INCORRECT")
     
-    if not docs:
-        return "fallback"
-        
-    first_doc_score = docs[0].metadata.get("score", 0.0)
-    
-    if first_doc_score >= 0.8:
-        # Path A: Correct
-        return "generate"
-    elif 0.4 <= first_doc_score < 0.8:
-        # Path B: Ambiguous (Partial/Insufficient Context)
-        return "fallback"
+    if confidence == "CORRECT":
+        return "knowledge_refine"
+    elif confidence == "INCORRECT":
+        return "web_search"
     else:
-        # Path C: Incorrect (Irrelevant or Stale Data)
-        return "fallback"
+        return "ambiguous_process"
