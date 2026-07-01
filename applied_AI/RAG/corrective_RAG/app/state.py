@@ -8,6 +8,7 @@ class GraphState(BaseModel):
     messages: List[str] = Field(default_factory=list)
     query: str = ""
     documents: List[Dict[str, Any]] = Field(default_factory=list)
+    confidence: str = ""
     path: str = ""
     external_context: List[Dict[str, Any]] = Field(default_factory=list)
     generation: str = ""
