@@ -40,17 +40,30 @@ def knowledge_refine(state):
 def web_search(state):
     """
     INCORRECT PATH: Web Search (W Rewrites x for searching)
+    Includes graceful fallback if external search fails.
     """
     query = state.query
     rewritten_query = rewrite_query(query)
     
     tool = TavilySearchResults(max_results=3)
-    results = tool.invoke({"query": rewritten_query})
+    external_docs = []
     
-    external_docs = [
-        Document(page_content=r["content"], metadata={"source_type": "EXTERNAL", "url": r.get("url", "")})
-        for r in results
-    ]
+    try:
+        results = tool.invoke({"query": rewritten_query})
+        
+        if not results:
+            raise ValueError("No results found from web search.")
+            
+        external_docs = [
+            Document(page_content=r["content"], metadata={"source_type": "EXTERNAL", "url": r.get("url", "")})
+            for r in results
+        ]
+    except Exception as e:
+        # Graceful degradation fallback
+        fallback_content = "SYSTEM NOTIFICATION: Web search failed or returned no results. Rely on internal parametric knowledge if possible."
+        external_docs = [
+            Document(page_content=fallback_content, metadata={"source_type": "FALLBACK_SYSTEM", "error": str(e)})
+        ]
     
     return {"documents": external_docs}
 

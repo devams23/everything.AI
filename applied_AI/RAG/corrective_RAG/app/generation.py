@@ -27,11 +27,16 @@ def generate_response(state):
     # Context
     context_text = "\n".join([f"Source: {d.metadata.get('tag', 'INTERNAL')}\nContent: {d.page_content}" for d in docs])
     
-    # System Prompt: Weight Recent Sources
+    # System Prompt: Weight Recent Sources and Handle Fallbacks
     system_prompt = (
         "You are an assistant for question-answering tasks. "
         "Use the following pieces of retrieved context to answer the question. "
-        "Give more weight to recent sources. If you don't know the answer, just say that you don't know."
+        "Give more weight to recent sources.\n\n"
+        "IMPORTANT FALLBACK INSTRUCTION:\n"
+        "If you see a SYSTEM NOTIFICATION indicating web search failed, you may use your internal "
+        "parametric knowledge to answer the question. If you do, explicitly state that you are "
+        "doing so because external data was unavailable.\n\n"
+        "If you don't know the answer and no fallback is triggered, just say that you don't know."
         f"\n\nContext:\n{context_text}"
     )
     
