@@ -4,21 +4,6 @@ Brief: Build a FastAPI service that accepts a `.txt` file upload, validates it, 
 
 ---
 
-## Open Questions
-
-> [!IMPORTANT]
-> **Should `tests/` be a deliverable?**
-> The app-spec calls for unit tests (validation edge cases, PII regex, chunking, Pydantic schema). The assignment brief does not explicitly require them. Confirm whether you want a `tests/` directory wired up or if this is out of scope for the submission.
-
-> [!IMPORTANT]
-> **Rate-limit fallback wiring**
-> The spec says: on HTTP 429, call `test_llm_service.py` (which returns a cached response). Should the fallback always return the same hard-coded mock payload, or should it try to produce a plausible response from the cached data? Clarify the expected behaviour so I can design the `TestLLMService` interface correctly.
-
-> [!IMPORTANT]
-> **Config file location**
-> The spec mentions a `settings/config object` but the project has no `config.py` yet. Should I create `app/config.py` (Pydantic `BaseSettings`) or place settings at root level (`config.py`)? I'll default to `app/config.py` unless you say otherwise.
-
----
 
 ## Proposed Changes
 
