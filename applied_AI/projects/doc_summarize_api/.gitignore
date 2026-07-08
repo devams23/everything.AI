@@ -31,3 +31,7 @@ archive.zip
 .DS_Store
 
 .codspeed
+
+# Environment / secrets — never commit these
+.env
+*.env
