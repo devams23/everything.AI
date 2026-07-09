@@ -2,28 +2,18 @@
 app/services/llm_service/openrouter_llm_service.py
 OpenRouter LLM client for document summarisation.
 
-Responsibilities
-----------------
-- Build and send structured prompts to OpenRouter's OpenAI-compatible endpoint.
-- Parse and validate the JSON response into a SummaryDetail Pydantic model.
-- On parse/validation failure: one repair retry with explicit schema reminder.
-- On HTTP 429: raise RateLimitError (caller handles fallback).
-- Map-reduce summarisation for multi-chunk documents:
-    Phase 1 — summarise each chunk individually.
-    Phase 2 — synthesise per-chunk summaries into a single final summary.
-
-Security / observability notes
--------------------------------
-- API key is loaded from config; never logged or included in error messages.
-- Full prompt/response payloads are NOT logged; only lengths and hashes.
-- Explicit timeout on every httpx call (no silent hangs).
-- Temperature kept low (0.3) for deterministic summarisation output.
+- Sends structured prompts to OpenRouter's OpenAI-compatible endpoint.
+- Validates response into a SummaryDetail Pydantic model.
+- On parse failure: one repair retry before raising LLMParseError.
+- On HTTP 429: raises RateLimitError for the caller to handle.
+- summarize_chunks(): map-reduce for long documents (per-chunk + synthesis).
 """
 
 from __future__ import annotations
 
-import hashlib
+import time
 import json
+import re
 from typing import Any
 
 import httpx
@@ -31,16 +21,11 @@ from pydantic import ValidationError
 
 from app.config import settings
 from app.models.response_models import SummaryDetail
-from app.services.llm_service.base_llm_service import (
-    BaseLLMService,
-    LLMParseError,
-    RateLimitError,
-)
+from app.services.llm_service.base_llm_service import BaseLLMService, LLMParseError, RateLimitError
 from app.services.logger_service import get_logger
 
 log = get_logger(__name__)
 
-# ── Prompt templates ──────────────────────────────────────────────────────────
 _SYSTEM_PROMPT = """\
 You are a precise document summarisation assistant.
 Your ONLY output must be a single valid JSON object — no markdown fences, \
@@ -78,9 +63,7 @@ Required JSON schema:
 
 
 class OpenRouterLLMService(BaseLLMService):
-    """
-    Calls OpenRouter's OpenAI-compatible chat completions endpoint.
-    """
+    """Calls OpenRouter's OpenAI-compatible chat completions endpoint."""
 
     def __init__(self) -> None:
         self._base_url = settings.openrouter_base_url.rstrip("/")
@@ -95,47 +78,36 @@ class OpenRouterLLMService(BaseLLMService):
         if settings.x_openrouter_title:
             self._headers["X-OpenRouter-Title"] = settings.x_openrouter_title
 
-    # ── Public interface ──────────────────────────────────────────────────────
     async def summarize(self, text: str) -> SummaryDetail:
         """Summarise a single text chunk."""
         messages = [
             {"role": "system", "content": _SYSTEM_PROMPT},
             {"role": "user", "content": f"Document to summarise:\n\n{text}"},
         ]
-        return await self._call_with_retry(messages, context="single-chunk")
+        return await self._call_with_retry(messages)
 
     async def summarize_chunks(self, chunks: list[str]) -> SummaryDetail:
         """
         Map-reduce summarisation for multi-chunk documents.
-
-        Phase 1 — summarise each chunk individually (sequential to stay within
-                   OpenRouter's 20 req/min free-tier limit).
+        Phase 1 — summarise each chunk individually.
         Phase 2 — synthesise all per-chunk summaries into one final summary.
         """
-        log.info("starting map-reduce summarisation", extra={"chunk_count": len(chunks)})
+        log.info(f"Map-reduce: summarising {len(chunks)} chunks")
 
-        # Phase 1: per-chunk summaries
         partial_summaries: list[SummaryDetail] = []
         for idx, chunk in enumerate(chunks, start=1):
-            log.info("summarising chunk", extra={"chunk_index": idx, "total_chunks": len(chunks)})
+            log.info(f"Summarising chunk {idx}/{len(chunks)}")
             partial = await self.summarize(chunk)
             partial_summaries.append(partial)
 
-        # Phase 2: synthesis
-        log.info("synthesising chunk summaries", extra={"partial_count": len(partial_summaries)})
-        synthesis_input = self._format_partials(partial_summaries)
+        log.info("Synthesising chunk summaries")
         messages = [
             {"role": "system", "content": _SYNTHESIS_SYSTEM_PROMPT},
-            {"role": "user", "content": synthesis_input},
+            {"role": "user", "content": self._format_partials(partial_summaries)},
         ]
-        return await self._call_with_retry(messages, context="synthesis")
+        return await self._call_with_retry(messages)
 
-    # ── Internal helpers ──────────────────────────────────────────────────────
-    async def _call_with_retry(
-        self,
-        messages: list[dict[str, str]],
-        context: str = "",
-    ) -> SummaryDetail:
+    async def _call_with_retry(self, messages: list[dict[str, str]]) -> SummaryDetail:
         """
         Make one LLM call; on parse/schema failure issue one repair retry.
         Raises LLMParseError if both attempts fail.
@@ -145,18 +117,9 @@ class OpenRouterLLMService(BaseLLMService):
 
         try:
             return self._parse(raw_response)
-        except (LLMParseError, ValidationError) as first_err:
-            log.warning(
-                "LLM response invalid — attempting repair",
-                extra={
-                    "context": context,
-                    "error": str(first_err),
-                    "response_hash": _sha256(raw_response),
-                    "response_length": len(raw_response),
-                },
-            )
+        except (LLMParseError, ValidationError) as err:
+            log.warning(f"LLM response invalid, attempting repair: {err}")
 
-        # Repair attempt — append the bad response and a correction instruction
         repair_messages = messages + [
             {"role": "assistant", "content": raw_response},
             {"role": "user", "content": _REPAIR_PROMPT},
@@ -165,28 +128,17 @@ class OpenRouterLLMService(BaseLLMService):
 
         try:
             return self._parse(repaired_response)
-        except (LLMParseError, ValidationError) as second_err:
-            log.error(
-                "LLM repair attempt also failed",
-                extra={
-                    "context": context,
-                    "error": str(second_err),
-                    "response_hash": _sha256(repaired_response),
-                    "response_length": len(repaired_response),
-                },
-            )
+        except (LLMParseError, ValidationError) as err:
+            log.error(f"LLM repair attempt also failed: {err}")
             raise LLMParseError(
-                "LLM returned invalid JSON after one repair attempt. "
-                "The upstream model response could not be parsed."
-            ) from second_err
+                "LLM returned invalid JSON after one repair attempt."
+            ) from err
 
     async def _chat_completion(self, messages: list[dict[str, str]]) -> str:
         """
-        POST to the OpenRouter chat completions endpoint and return the raw
-        assistant message string.
-
-        Raises RateLimitError on 429; raises httpx.HTTPStatusError on other
-        HTTP errors.
+        POST to the OpenRouter chat completions endpoint.
+        Returns the raw assistant message string.
+        Raises RateLimitError on 429.
         """
         payload: dict[str, Any] = {
             "model": self._model,
@@ -196,16 +148,7 @@ class OpenRouterLLMService(BaseLLMService):
             "response_format": {"type": "json_object"},
         }
 
-        log.info(
-            "LLM call start",
-            extra={
-                "model": self._model,
-                "message_count": len(messages),
-                "prompt_length": sum(len(m["content"]) for m in messages),
-            },
-        )
-
-        import time
+        log.info(f"LLM call start — model: {self._model}, messages: {len(messages)}")
         t0 = time.perf_counter()
 
         async with httpx.AsyncClient(timeout=self._timeout) as client:
@@ -218,10 +161,7 @@ class OpenRouterLLMService(BaseLLMService):
         latency_ms = int((time.perf_counter() - t0) * 1000)
 
         if response.status_code == 429:
-            log.warning(
-                "OpenRouter rate limit hit",
-                extra={"status_code": 429, "latency_ms": latency_ms},
-            )
+            log.warning("OpenRouter rate limit hit (HTTP 429)")
             raise RateLimitError("OpenRouter returned HTTP 429 — rate limited")
 
         response.raise_for_status()
@@ -229,25 +169,12 @@ class OpenRouterLLMService(BaseLLMService):
         data = response.json()
         content: str = data["choices"][0]["message"]["content"]
 
-        log.info(
-            "LLM call complete",
-            extra={
-                "latency_ms": latency_ms,
-                "response_length": len(content),
-                "response_hash": _sha256(content),
-                "finish_reason": data["choices"][0].get("finish_reason"),
-            },
-        )
+        log.info(f"LLM call complete — latency: {latency_ms}ms, response length: {len(content)}")
         return content
 
     def _parse(self, raw: str) -> SummaryDetail:
-        """
-        Parse a raw LLM response string into a SummaryDetail.
-        Raises LLMParseError if JSON is invalid.
-        Raises pydantic.ValidationError if the schema doesn't match.
-        """
+        """Parse a raw LLM response string into a SummaryDetail."""
         raw = raw.strip()
-        # Strip accidental markdown fences the model may still emit
         if raw.startswith("```"):
             raw = re.sub(r"^```[a-z]*\n?", "", raw)
             raw = re.sub(r"\n?```$", "", raw)
@@ -274,11 +201,3 @@ class OpenRouterLLMService(BaseLLMService):
             lines.append("")
         lines.append("Produce a single unified summary of the WHOLE document.")
         return "\n".join(lines)
-
-
-# ── Utility ───────────────────────────────────────────────────────────────────
-import re  # noqa: E402 (imported late to keep top-of-file imports clean)
-
-
-def _sha256(text: str) -> str:
-    return hashlib.sha256(text.encode()).hexdigest()[:16]

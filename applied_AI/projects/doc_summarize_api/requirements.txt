@@ -43,4 +43,3 @@ watchfiles==1.2.0
 websockets==16.0
 # --- added for doc_summarize_api ---
 tiktoken==0.13.0
-slowapi==0.1.10
