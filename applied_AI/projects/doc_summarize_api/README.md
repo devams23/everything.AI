@@ -30,6 +30,39 @@ Interactive docs: `http://localhost:8000/docs`
 
 ---
 
+## Request Lifecycle
+
+```mermaid
+flowchart TD
+    A([Client]) -->|POST /summarize| MW[RequestIDMiddleware\nassign request ID]
+    MW --> VAL[validate_upload\nextension · size · encoding]
+
+    VAL -->|invalid| E1([Error\n415 / 422 / 413])
+    VAL -->|valid| CLEAN[clean_text\nnormalise whitespace]
+
+    CLEAN --> PII[redact_pii\nmask emails · phones · SSN · CC]
+    PII --> CHUNK{tokens\n> threshold?}
+
+    CHUNK -->|no| LLM[OpenRouter API call\nllama-3.3-70b-instruct]
+    CHUNK -->|yes| SPLIT[chunk_text\nparagraph-boundary split]
+
+    SPLIT --> MAP[summarize each chunk\nPhase 1 — map]
+    MAP --> SYNTH[synthesis call\nPhase 2 — reduce]
+    SYNTH --> LLM
+
+    LLM -->|HTTP 429| FB[TestLLMService\ncached fallback]
+    LLM -->|parse error| REPAIR[repair retry\none attempt]
+    LLM -->|success| PARSE[validate schema\nPydantic]
+
+    REPAIR -->|valid| PARSE
+    REPAIR -->|invalid| E2([Error 500])
+
+    PARSE --> OK([SuccessResponse 200])
+    FB --> OK
+```
+
+---
+
 ## Environment Variables
 
 | Variable | Required | Default | Description |
