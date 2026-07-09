@@ -4,6 +4,22 @@ A FastAPI service that accepts a `.txt` file upload, preprocesses the text (incl
 
 ---
 
+## Demo
+
+**Successful summary response (`happy_path.txt`)**
+
+![API success response](output_images/success_txt.png)
+
+**Validation error responses (wrong extension · empty file · oversized)**
+
+![API error responses](output_images/error_file.png)
+
+**Server-side structured logs for a full summarise request**
+
+![Application logs](output_images/app_logs.png)
+
+---
+
 ## Quick Start
 
 ### 1. Clone & install dependencies
@@ -78,7 +94,7 @@ flowchart TD
 | `MAX_FILE_SIZE_MB` | No | `2` | Maximum upload size in MB |
 | `CHUNK_TOKEN_THRESHOLD` | No | `100000` | Token count above which chunking is triggered |
 | `ENABLE_PII_REDACTION` | No | `true` | Toggle PII redaction before sending to OpenRouter |
-| `RATE_LIMIT_PER_MINUTE` | No | `10` | Max requests per client IP per minute on `/summarize` |
+
 
 ---
 
