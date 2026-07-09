@@ -1,0 +1,44 @@
+Meeting Notes — Project Alpha Kickoff
+Date: March 15, 2024
+Location: Conference Room B / Zoom hybrid
+
+
+
+Attendees:
+- Marcus Webb (Project Lead)
+- Priya Nair (Engineering)
+- Tom Carroll (Design)
+- Lisa Park (QA)
+
+
+
+
+Agenda Items Discussed
+
+1. Project Scope
+
+The team agreed on a phased delivery approach. Phase 1 targets a working MVP
+by end of Q2. Phase 2 adds analytics and reporting features in Q3.
+
+
+2. Tech Stack Decision
+
+After discussion, the team chose React for the frontend and FastAPI for the
+backend. The database will be PostgreSQL. All services will be containerised
+with Docker and deployed on AWS.
+
+
+3. Open Questions
+
+- Who owns the CI/CD pipeline setup? (Action: Marcus to assign by EOD Friday)
+- Are there budget approvals needed for cloud infrastructure? (Action: Lisa to check)
+- Timeline for design mockups? (Action: Tom to send draft by March 22)
+
+
+
+Next Meeting: March 22, 2024 at 10:00 AM
+
+
+
+
+Notes compiled by: Marcus Webb

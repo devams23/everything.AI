@@ -1,0 +1,5 @@
+This file has a .pdf extension but contains plain text content.
+The service should reject it with HTTP 415 because the extension is not .txt,
+even though the content itself is readable text.
+
+This tests that the extension check fires before anything else.
