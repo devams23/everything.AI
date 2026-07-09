@@ -4,22 +4,6 @@ A FastAPI service that accepts a `.txt` file upload, preprocesses the text (incl
 
 ---
 
-## Demo
-
-**Successful summary response (`happy_path.txt`)**
-
-![API success response](output_images/success_txt.png)
-
-**Validation error responses (wrong extension · empty file · oversized)**
-
-![API error responses](output_images/error_file.png)
-
-**Server-side structured logs for a full summarise request**
-
-![Application logs](output_images/app_logs.png)
-
----
-
 ## Quick Start
 
 ### 1. Clone & install dependencies
@@ -53,7 +37,7 @@ flowchart TD
     A([Client]) -->|POST /summarize| MW[RequestIDMiddleware\nassign request ID]
     MW --> VAL[validate_upload\nextension · size · encoding]
 
-    VAL -->|invalid| E1([Error\n415 / 422 / 413])
+    VAL -->|invalid| E1([Error\n415 / 413 / 422])
     VAL -->|valid| CLEAN[clean_text\nnormalise whitespace]
 
     CLEAN --> PII[redact_pii\nmask emails · phones · SSN · CC]
