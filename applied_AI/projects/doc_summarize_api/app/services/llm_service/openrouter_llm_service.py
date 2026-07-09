@@ -167,6 +167,8 @@ class OpenRouterLLMService(BaseLLMService):
         response.raise_for_status()
 
         data = response.json()
+        log.info(f"LLM call complete <==DATA==> {data}")
+
         content: str = data["choices"][0]["message"]["content"]
 
         log.info(f"LLM call complete — latency: {latency_ms}ms, response length: {len(content)}")

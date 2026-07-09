@@ -9,17 +9,20 @@ from app.api.health_api import router as health_router
 from app.api.summarize_api import router as summarize_router
 from app.services.logger_service import RequestIDMiddleware, get_logger
 
-log = get_logger(__name__)
+log = get_logger()
 
 app = FastAPI(
     title="Mini AI Document Summary API",
     version="1.0.0",
-    description="Accepts a .txt file and returns a structured summary using meta-llama/llama-3.3-70b-instruct:free via OpenRouter.",
+    description="Accepts a .txt file and returns a structured summary using llama-3.3-70b-instruct:free via OpenRouter.",
     docs_url="/docs",
 )
 
 app.add_middleware(RequestIDMiddleware)
 
+"""
+    catching all the exceptions from the routers and sending a proper response to the client
+"""
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):

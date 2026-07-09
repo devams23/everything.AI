@@ -64,4 +64,4 @@ class Settings(BaseSettings):
 
 
 # Module-level singleton — import and use `settings` everywhere.
-settings = Settings()  # type: ignore[call-arg]
+settings = Settings()

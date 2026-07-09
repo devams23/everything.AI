@@ -31,7 +31,7 @@ def get_logger(name: str) -> logging.Logger:
 
 class _RequestIDFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
-        record.request_id = get_request_id()  # type: ignore[attr-defined]
+        record.request_id = get_request_id()
         return True
 
 

@@ -38,7 +38,6 @@ class BaseLLMService(ABC):
                          one repair attempt.
         RateLimitError — if the provider returns HTTP 429.
         """
-        ...  # pragma: no cover
 
 
 # ── Custom exceptions ─────────────────────────────────────────────────────────

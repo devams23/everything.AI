@@ -3,6 +3,15 @@
 A FastAPI service that accepts a `.txt` file upload, preprocesses the text (including optional PII redaction), and returns a structured AI-generated summary using **`meta-llama/llama-3.3-70b-instruct:free`** via [OpenRouter](https://openrouter.ai).
 
 ---
+## Demo
+
+- Successful summary response (`happy_path.txt`)
+![API success response](output_images/success_txt.png)
+- Validation error responses (wrong extension · empty file · oversized)
+![API error responses](output_images/error_file.png)
+- Server-side structured logs for a full summarise request
+![Application logs](output_images/app_logs.png)
+
 
 ## Quick Start
 
