@@ -25,6 +25,7 @@ async def summarize(request: Request, file: UploadFile) -> SuccessResponse:
     log.info(f"Text cleaned: {len(text)} -> {len(cleaned)} chars")
 
     redacted, pii_counts = redact_pii(cleaned)
+    log.info(f"redacted text: {redacted}")
     if pii_counts:
         log.info(f"PII redacted before LLM call: {pii_counts}")
 
@@ -36,7 +37,7 @@ async def summarize(request: Request, file: UploadFile) -> SuccessResponse:
         if use_map_reduce:
             summary_detail = await _openrouter_svc.summarize_chunks(chunks)
         else:
-            summary_detail = await _openrouter_svc.summarize(redacted)
+            summary_detail = await _test_svc.summarize(redacted)
     except RateLimitError:
         log.warning(f"Rate limited by OpenRouter, falling back to cached response: {safe_filename}")
         summary_detail = await _test_svc.summarize(redacted)

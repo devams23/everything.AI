@@ -41,7 +41,6 @@ def clean_text(text: str) -> str:
     """
     text = unicodedata.normalize("NFKC", text)
     text = re.sub(r"[^\S\n\t ]+", " ", text)
-    text = "".join(ch for ch in text if unicodedata.category(ch)[0] != "C" or ch in ("\n", "\t"))
     text = re.sub(r"[ \t]+", " ", text)
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()

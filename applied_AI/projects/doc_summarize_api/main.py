@@ -9,7 +9,7 @@ from app.api.health_api import router as health_router
 from app.api.summarize_api import router as summarize_router
 from app.services.logger_service import RequestIDMiddleware, get_logger
 
-log = get_logger()
+log = get_logger(__name__)
 
 app = FastAPI(
     title="Mini AI Document Summary API",
