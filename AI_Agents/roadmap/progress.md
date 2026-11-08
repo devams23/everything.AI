@@ -4,9 +4,9 @@ Started: 2026-11-07
 
 ## Phase 1 — Foundations
 - [x] Raw agent loop (no framework) with 2–3 tools (2026-11-07: tool errors fed back to model, safe AST calculator)
-- [ ] Same agent in ADK + a write-up of the differences
-- [ ] `notes.md`: "an agent is…" in my own words
-- [ ] Exit criteria met
+- [x] Same agent in ADK (2026-11-08: reviewed AI code, found 3 bugs; added callbacks + 3-layer loop limits)
+- [x] `notes.md`: "an agent is…" in my own words + raw loop vs ADK comparison
+- [x] Exit criteria met — **Phase 1 complete (2026-11-08)**
 
 ## Phase 2 — Design patterns
 - [ ] `pattern_catalog.md` covering all 9 rungs
