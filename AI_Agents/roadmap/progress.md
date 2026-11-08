@@ -3,7 +3,7 @@
 Started: 2026-11-07
 
 ## Phase 1 — Foundations
-- [ ] Raw agent loop (no framework) with 2–3 tools
+- [x] Raw agent loop (no framework) with 2–3 tools (2026-11-07: tool errors fed back to model, safe AST calculator)
 - [ ] Same agent in ADK + a write-up of the differences
 - [ ] `notes.md`: "an agent is…" in my own words
 - [ ] Exit criteria met
@@ -28,6 +28,7 @@ Started: 2026-11-07
 - [ ] `eval_playbook.md`
 - [ ] `production_checklist.md`
 - [ ] Evals + tracing on P1
+- [ ] Retries + exponential backoff for model API failures (deferred from Phase 1 raw loop)
 
 ## Phase 5 — Projects
 - [ ] P1 Support triage — design doc
