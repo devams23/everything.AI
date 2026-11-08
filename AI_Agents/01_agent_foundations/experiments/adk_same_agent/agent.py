@@ -17,6 +17,7 @@ from datetime import datetime
 
 from dotenv import find_dotenv, load_dotenv
 from google.adk.agents import Agent
+from google.adk.agents.run_config import RunConfig
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.genai import types
@@ -26,6 +27,11 @@ load_dotenv(find_dotenv())
 
 MODEL = os.getenv("MODEL", "gemini-3.5-flash-lite")
 APP_NAME = "calc_app"
+
+# --- Loop limits (3 layers against infinite loops) ---------------------------
+MAX_LLM_CALLS = 8        # layer 1: total model calls per question (ADK enforces it)
+MAX_CALLS_PER_TOOL = 3   # layer 2: same tool over and over = probably stuck (our callback)
+TIMEOUT_SECONDS = 30     # layer 3: wall-clock cap, whatever the reason
 
 # --- Tools -------------------------------------------------------------------
 # ADK reads the type hints + docstring to build the schema you wrote by hand before.
@@ -62,6 +68,28 @@ def current_time() -> dict:
     return {"status": "success", "result": datetime.now().strftime("%H:%M")}
 
 
+# --- Callbacks: hooks ADK runs around every tool call ------------------------
+# This is "where the tool is called": ADK runs before_tool -> YOUR FUNCTION -> after_tool.
+# Same spot as `result = TOOLS[call.name](**call.args)` in raw_loop.
+
+def before_tool(tool, args, tool_context):
+    # "temp:" state lives only for the current question, so the count resets each time.
+    key = f"temp:calls_{tool.name}"
+    count = tool_context.state.get(key, 0) + 1
+    tool_context.state[key] = count
+    print(f"    -> before_tool: about to run {tool.name}({args})  [call #{count}]")
+    if count > MAX_CALLS_PER_TOOL:
+        # Returning a dict SKIPS the real tool; the model gets this instead.
+        return {"status": "error",
+                "error_message": f"{tool.name} called too many times. Stop and answer with what you have."}
+    return None  # None = go ahead and run the real tool
+
+
+def after_tool(tool, args, tool_context, tool_response):
+    print(f"    <- after_tool:  {tool.name} returned {tool_response}")
+    return None  # None = keep the tool's response unchanged
+
+
 root_agent = Agent(
     name="calc_agent",
     model=MODEL,
@@ -71,6 +99,8 @@ root_agent = Agent(
         "or fix the input and try again."
     ),
     tools=[calculator, current_time],
+    before_tool_callback=before_tool,
+    after_tool_callback=after_tool,
 )
 
 session_service = InMemorySessionService()
@@ -90,16 +120,21 @@ async def ask(user_id: str, question: str, session_id: str = "default") -> str:
 
     message = types.Content(role="user", parts=[types.Part(text=question)])
     try:
-        async for event in runner.run_async(
-            user_id=user_id, session_id=session_id, new_message=message
-        ):
-            for call in event.get_function_calls():
-                print(f"  [{user_id}] tool call: {call.name}({call.args})")
-            for resp in event.get_function_responses():
-                print(f"  [{user_id}] tool result: {resp.response}")
-            if event.is_final_response() and event.content and event.content.parts:
-                return event.content.parts[0].text
-    except Exception as e:  # last line of defence: one bad request must not take down the app
+        async with asyncio.timeout(TIMEOUT_SECONDS):  # layer 3
+            # run_async IS the loop from raw_loop. Each event = one step of it.
+            async for event in runner.run_async(
+                user_id=user_id,
+                session_id=session_id,
+                new_message=message,
+                run_config=RunConfig(max_llm_calls=MAX_LLM_CALLS),  # layer 1
+            ):
+                for call in event.get_function_calls():
+                    print(f"  [{user_id}] model asked for: {call.name}({call.args})")
+                if event.is_final_response() and event.content and event.content.parts:
+                    return event.content.parts[0].text
+    except TimeoutError:
+        return f"Sorry, that took longer than {TIMEOUT_SECONDS}s, so I stopped."
+    except Exception as e:  # last line of defence (also catches the max_llm_calls limit)
         print(f"  [{user_id}] run failed: {type(e).__name__}: {e}")
         return "Sorry, something went wrong. Please try again."
     return "(no answer)"
@@ -110,6 +145,8 @@ async def main():
     print("Bob:  ", await ask("bob", "What is my favourite number?"))
     print("Bob:  ", await ask("bob", "Use the calculator to compute 10 / 0."))
     print("Bob:  ", await ask("bob", "Use the calculator on: __import__('os').getcwd()"))
+    # Loop test: invites the model to call the tool many times -> should hit MAX_CALLS_PER_TOOL.
+    print("Bob:  ", await ask("bob", "Compute 1+1, then 2+2, then 3+3, then 4+4, then 5+5, each with a separate calculator call."))
 
 
 if __name__ == "__main__":
