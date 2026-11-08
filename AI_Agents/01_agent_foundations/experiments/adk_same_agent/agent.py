@@ -18,7 +18,7 @@ from google.genai import types
 # Finds the nearest .env, starting in this folder and walking up (so AI_Agents/.env also works).
 load_dotenv(find_dotenv())
 
-MODEL = os.getenv("MODEL", "gemini-2.5-flash")
+MODEL = os.getenv("MODEL", "gemini-3.5-flash-lite")
 APP_NAME = "calc_app"
 USER_ID = "user_1"
 SESSION_ID = "session_1"
