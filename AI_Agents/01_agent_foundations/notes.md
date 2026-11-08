@@ -22,10 +22,17 @@ An agent is a series of LLM calls until the goal is reached, and that is decided
 > - Session uniqueness comes from the combination **(app_name, user_id, session_id)**. `InMemorySessionService` is lost on restart; production uses a database-backed one.
 
 ## 3. Three ways the agent broke in production, and the fixes
-<!-- TODO: fill in -->
-1.
-2.
-3.
+1. **A tool error broke the whole run.** Fix: catch the error inside the tool and return it as a response saved in the history. On the next LLM call the model sees the error and sends a new function call with corrected parameters, so a single failure doesn't break the whole agent loop.
+2. **Unsafe tool (`eval`).** Fix: an allow-list, so only the operations we permit are handled (AST calculator: numbers and `+ - * /`).
+3. **Session leakage between users.** Fix: use the user ID in the session key, so each user has their own history.
+
+> **Review note:** all three are right. A fourth from this week: **infinite loops** → `max_llm_calls`, a per-tool call cap, and a timeout.
+
+## Q&A
+**Is the 30s `asyncio.timeout` per tool or per question?** Per question. It wraps the whole `run_async` loop: every model and tool call combined.
+- Per-tool limits go *inside* the tool (e.g. `requests.get(url, timeout=5)`).
+- `asyncio.timeout` can only interrupt at an `await`. A blocking tool (`time.sleep`, `requests` with no timeout) can freeze the event loop and make the overall timeout fire late.
+- The overall timeout protects the **user**; per-tool timeouts protect the **system**. You need both.
 
 ## 4. What surprised me
 - How the per-user part is managed in the session service, even when the `session_id` is the same.
