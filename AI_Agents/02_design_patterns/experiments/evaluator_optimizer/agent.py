@@ -96,10 +96,12 @@ async def run_agent(agent: Agent, text: str) -> str:
     session_id = str(uuid.uuid4())
     await session_service.create_session(app_name=APP_NAME, user_id="marketing", session_id=session_id)
     message = types.Content(role="user", parts=[types.Part(text=text)])
+    final = ""
+    # Don't `return` inside the loop: let the stream finish, or ADK cancels the run mid-way.
     async for event in runner.run_async(user_id="marketing", session_id=session_id, new_message=message):
         if event.is_final_response() and event.content and event.content.parts:
-            return (event.content.parts[0].text or "").strip()
-    return ""
+            final = (event.content.parts[0].text or "").strip()
+    return final
 
 
 async def llm_review(draft: str) -> list[str]:
