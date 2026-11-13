@@ -10,7 +10,7 @@ Started: 2026-11-07
 
 ## Phase 2 — Design patterns
 - [ ] `pattern_catalog.md` covering all 9 rungs
-- [ ] 4 runnable pattern experiments
+- [x] 4 runnable pattern experiments (2026-11-13: routing, parallel, evaluator-optimizer, chain — each with run findings)
 - [ ] MCP: connect an agent to an existing MCP server
 - [ ] Exit criteria met
 
