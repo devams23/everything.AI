@@ -12,7 +12,7 @@ Started: 2026-11-07
 - [x] `pattern_catalog.md` covering all 9 rungs (2026-11-16)
 - [x] 4 runnable pattern experiments (2026-11-13: routing, parallel, evaluator-optimizer, chain — each with run findings)
 - [x] MCP: connect an agent to an existing MCP server (2026-11-16: filesystem server, read-only filter)
-- [ ] Exit criteria met
+- [x] Exit criteria met — **Phase 2 complete (2026-11-16)**
 
 ## Phase 3 — Problem → Agent
 - [ ] Read `framework.md` + the worked example
