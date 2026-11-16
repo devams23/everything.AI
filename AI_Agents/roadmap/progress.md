@@ -9,7 +9,7 @@ Started: 2026-11-07
 - [x] Exit criteria met — **Phase 1 complete (2026-11-08)**
 
 ## Phase 2 — Design patterns
-- [x] `pattern_catalog.md` covering all 9 rungs
+- [x] `pattern_catalog.md` covering all 9 rungs (2026-11-16)
 - [x] 4 runnable pattern experiments (2026-11-13: routing, parallel, evaluator-optimizer, chain — each with run findings)
 - [x] MCP: connect an agent to an existing MCP server (2026-11-16: filesystem server, read-only filter)
 - [x] Exit criteria met
