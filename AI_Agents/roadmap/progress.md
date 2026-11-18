@@ -16,7 +16,7 @@ Started: 2026-11-07
 
 ## Phase 3 — Problem → Agent
 - [ ] Read `framework.md` + the worked example
-- [ ] Case study 01
+- [x] Case study 01 (2026-11-18: maintenance requests → AI-assisted system, not an agent)
 - [ ] Case study 02
 - [ ] Case study 03
 - [ ] Case study 04
