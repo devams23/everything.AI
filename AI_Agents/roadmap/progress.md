@@ -17,7 +17,7 @@ Started: 2026-11-07
 ## Phase 3 — Problem → Agent
 - [ ] Read `framework.md` + the worked example
 - [x] Case study 01 (2026-11-18: maintenance requests → AI-assisted system, not an agent)
-- [ ] Case study 02
+- [x] Case study 02 (2026-11-19: sales call research → parallel fetch + checked chain, not an agent)
 - [ ] Case study 03
 - [ ] Case study 04
 - [ ] Case study 05
